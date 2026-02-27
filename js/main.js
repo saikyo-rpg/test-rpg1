@@ -9,6 +9,7 @@ import {
 } from "./config.js";
 
 import { cloneEnemyFromTemplate } from "./state.js";
+import { saveGame, loadGame, applyLoadedGame, hasSave, deleteSave } from "./save.js";
 
 import { clamp, dist } from "./util.js";
 import { getUI, updateUI } from "./ui.js";
@@ -41,6 +42,32 @@ const world = {
 };
 
 const logger = createLogger(ui.log);
+const btnSave = document.getElementById("btnSave");
+const btnLoad = document.getElementById("btnLoad");
+const btnDeleteSave = document.getElementById("btnDeleteSave");
+
+logger.log(hasSave() ? "セーブデータがあります（ロード可能）" : "セーブデータはありません");
+
+btnSave?.addEventListener("click", () => {
+  saveGame(game);
+  logger.log("💾 セーブしました");
+});
+
+btnLoad?.addEventListener("click", () => {
+  const data = loadGame();
+  if(!data){
+    logger.log("セーブデータがありません");
+    return;
+  }
+  applyLoadedGame(game, data);
+  logger.log("📥 ロードしました（戦闘は解除されます）");
+});
+
+btnDeleteSave?.addEventListener("click", () => {
+  deleteSave();
+  logger.log("🗑 セーブデータを削除しました");
+});
+
 ui.clearLogBtn?.addEventListener("click", logger.clear);
 
 const input = createInput();
