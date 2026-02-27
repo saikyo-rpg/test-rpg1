@@ -1,48 +1,45 @@
-export function createPlayer(){
-  return {
-    x:120, y:240, r:12,
-    maxHp:120, hp:120,
-    def:2,
+export function createInput(){
+  const keys = new Set();
+  let revivePressed = false;
 
-    dead:false,
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    keys.add(k);
+    if(k === "r") revivePressed = true;
 
-    // レベル/経験値
-    lv:1,
-    exp:0,
+    // 矢印キーでページがスクロールするのを防ぐ（任意だけどおすすめ）
+    if(k.startsWith("arrow")) e.preventDefault();
+  }, { passive: false });
 
-    // お金
-    gold: 0,
+  window.addEventListener("keyup", (e) => {
+    keys.delete(e.key.toLowerCase());
+  });
 
-    // 攻撃（レベルで上がる）
-    baseAtkMin:8,
-    baseAtkMax:14,
-    atkMin:8,
-    atkMax:14,
-  };
-}
+  function getMoveVec(){
+    let vx = 0, vy = 0;
 
-export function makeEnemy(x,y,name,hp,atkMin,atkMax,def, expReward, goldReward){
-  return {
-    x,y,r:12,name,
-    maxHp:hp, hp,
-    atkMin, atkMax,
-    def,
-    expReward,
-    goldReward,
+    // WASD
+    if(keys.has("w")) vy -= 1;
+    if(keys.has("s")) vy += 1;
+    if(keys.has("a")) vx -= 1;
+    if(keys.has("d")) vx += 1;
 
-    alive:true,
-    spawnX:x, spawnY:y,
-    respawnTimer:0
-  };
-}
+    // 方向キー
+    if(keys.has("arrowup")) vy -= 1;
+    if(keys.has("arrowdown")) vy += 1;
+    if(keys.has("arrowleft")) vx -= 1;
+    if(keys.has("arrowright")) vx += 1;
 
-export function createEnemies(){
-  return [
-    makeEnemy(520,160,"スライム",80,6,11,1, 12, 5),
-    makeEnemy(560,320,"ゴブリン",110,8,14,2, 20, 9),
-  ];
-}
+    const len = Math.hypot(vx, vy);
+    if(len === 0) return { vx: 0, vy: 0 };
+    return { vx: vx/len, vy: vy/len };
+  }
 
-export function createBattle(){
-  return { inBattle:false, target:null, pAttackTimer:0, eAttackTimer:0 };
+  function consumeRevive(){
+    const v = revivePressed;
+    revivePressed = false;
+    return v;
+  }
+
+  return { getMoveVec, consumeRevive };
 }
