@@ -86,3 +86,32 @@ kbd {
   padding: 6px 10px;
 }
 .btn:hover{ background:#262626; }
+
+.logActions{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+
+.btn{
+  appearance:none;
+  border:1px solid #333;
+  background:#222;
+  color:#eee;
+  padding:8px 10px;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:14px;
+}
+
+.btn:hover{ background:#262626; }
+.btn:active{ transform: translateY(1px); }
+
+.btn.ghost{
+  background: transparent;
+  border-color:#3a3a3a;
+  color:#ddd;
+}
+.btn.ghost:hover{
+  background:#1b1b1b;
+}
