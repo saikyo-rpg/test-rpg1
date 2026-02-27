@@ -45,10 +45,7 @@
         <div class="hint" id="battleState" style="margin-top:8px;"></div>
       </div>
 
-      <div class="card">
-        <b>ログ</b>
-        <div id="log"></div>
-      </div>
+
     </div>
   </div>
 
@@ -101,15 +98,11 @@
   };
 
   // ====== UI ======
-  const elLog = document.getElementById("log");
-  const elPBar = document.getElementById("pBar");
+    const elPBar = document.getElementById("pBar");
   const elEBar = document.getElementById("eBar");
   const elPStat = document.getElementById("pStat");
   const elEStat = document.getElementById("eStat");
   const elBattleState = document.getElementById("battleState");
-
-  function log(msg){
-  }
 
   function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
   function dist(a,b){ return Math.hypot(a.x - b.x, a.y - b.y); }
