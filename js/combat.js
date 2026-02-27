@@ -134,13 +134,11 @@ export function startBattle(battle, enemy, log){
   battle.target = enemy;
   battle.pAttackTimer = 0.2;
   battle.eAttackTimer = 0.45;
-  log?.(`⚔️ ${enemy.name} Lv${enemy.lv} と戦闘開始`);
 }
 
 export function endBattle(battle, log, reason){
   battle.inBattle = false;
   battle.target = null;
-  if(reason) log?.(reason);
 }
 
 // --------------------
