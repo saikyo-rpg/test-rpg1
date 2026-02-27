@@ -113,7 +113,7 @@ function updateItems(dt) {
     game.items.splice(idx, 1);
 
     // ポップアップ
-    addPopup(game.popups, p.x, p.y - 22, `+${Math.floor(p.hp - before)}`, "heal");
+    addPopup(game.popups, p.x, p.y - 44, `+${Math.floor(p.hp - before)}`, "heal");
 
     logger.log(`回復！ ${Math.floor(before)}→${Math.floor(p.hp)}`);
   }
