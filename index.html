@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>近づくと自動戦闘 - 最小サンプル</title>
+  <title>近づくと自動戦闘 - 最小サンプル（ログなし / 戦闘中移動OK）</title>
   <style>
     body { margin: 0; background:#111; color:#eee; font-family: system-ui, sans-serif; }
     #wrap { display:flex; gap:12px; padding:12px; }
@@ -13,7 +13,6 @@
     .bar { height:10px; background:#2a2a2a; border-radius:999px; overflow:hidden; }
     .bar > div { height:100%; background:#5fd38d; width:100%; }
     .bar.red > div { background:#ff6b6b; }
-    #log { height: 240px; overflow:auto; font-size: 13px; line-height: 1.35; }
     .hint { font-size: 13px; opacity:.9; }
     kbd { background:#222; border:1px solid #333; border-bottom-color:#444; padding:2px 6px; border-radius:6px; }
   </style>
@@ -25,7 +24,7 @@
       <div class="card">
         <div><b>操作</b></div>
         <div class="hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移動 / 敵に近づくと自動戦闘</div>
-        <div class="hint">戦闘中は移動停止（サンプル簡略化）</div>
+        <div class="hint">戦闘中も移動OK（範囲外に出ると解除）</div>
       </div>
 
       <div class="card">
@@ -44,8 +43,6 @@
         <div class="bar red"><div id="eBar"></div></div>
         <div class="hint" id="battleState" style="margin-top:8px;"></div>
       </div>
-
-
     </div>
   </div>
 
@@ -56,11 +53,11 @@
 
   // ====== ゲーム定数 ======
   const WORLD = { w: canvas.width, h: canvas.height };
-  const DT = 1/60; // 固定タイムステップ
-  const MOVE_SPEED = 180; // px/sec
-  const AGGRO_RADIUS = 70; // 近づくと戦闘開始する距離
-  const HIT_RADIUS = 18;   // 当たり判定（簡易）
-  const ATTACK_INTERVAL = 0.65; // sec
+  const DT = 1/60;                 // 固定タイムステップ
+  const MOVE_SPEED = 180;          // px/sec
+  const AGGRO_RADIUS = 70;         // 近づくと戦闘開始する距離
+  const ATTACK_INTERVAL = 0.65;    // sec
+
   const PLAYER = {
     x: 120, y: 240, r: 12,
     maxHp: 120, hp: 120,
@@ -92,17 +89,20 @@
   // ====== 戦闘ステート ======
   let battle = {
     inBattle: false,
-    target: null,          // enemy object
+    target: null, // enemy object
     pAttackTimer: 0,
     eAttackTimer: 0,
   };
 
   // ====== UI ======
-    const elPBar = document.getElementById("pBar");
+  const elPBar = document.getElementById("pBar");
   const elEBar = document.getElementById("eBar");
   const elPStat = document.getElementById("pStat");
   const elEStat = document.getElementById("eStat");
   const elBattleState = document.getElementById("battleState");
+
+  // ログ不要：呼ばれても何もしない（戦闘処理のlog呼び出しを残してもOK）
+  function log(_msg){}
 
   function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
   function dist(a,b){ return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -144,66 +144,68 @@
     }
 
     // ===== 移動（戦闘中でもOK）=====
-let vx = 0, vy = 0;
-if(keys.has("w")) vy -= 1;
-if(keys.has("s")) vy += 1;
-if(keys.has("a")) vx -= 1;
-if(keys.has("d")) vx += 1;
+    let vx = 0, vy = 0;
+    if(keys.has("w")) vy -= 1;
+    if(keys.has("s")) vy += 1;
+    if(keys.has("a")) vx -= 1;
+    if(keys.has("d")) vx += 1;
 
-const len = Math.hypot(vx, vy) || 1;
-vx /= len; vy /= len;
+    const len = Math.hypot(vx, vy) || 1;
+    vx /= len; vy /= len;
 
-PLAYER.x = clamp(PLAYER.x + vx * MOVE_SPEED * dt, 20, WORLD.w - 20);
-PLAYER.y = clamp(PLAYER.y + vy * MOVE_SPEED * dt, 20, WORLD.h - 20);
+    PLAYER.x = clamp(PLAYER.x + vx * MOVE_SPEED * dt, 20, WORLD.w - 20);
+    PLAYER.y = clamp(PLAYER.y + vy * MOVE_SPEED * dt, 20, WORLD.h - 20);
 
-// ===== 非戦闘時だけ：近づいたら戦闘開始 =====
-if(!battle.inBattle){
-  const target = ENEMIES.find(e => e.alive && dist(PLAYER, e) <= AGGRO_RADIUS);
-  if(target){
-    startBattle(target);
-  }
-} else {
-  // ===== 戦闘処理（元のまま）=====
-  const e = battle.target;
-  if(!e || !e.alive){
-    endBattle();
-    return;
-  }
+    // ===== 非戦闘時だけ：近づいたら戦闘開始 =====
+    if(!battle.inBattle){
+      const target = ENEMIES.find(e => e.alive && dist(PLAYER, e) <= AGGRO_RADIUS);
+      if(target){
+        startBattle(target);
+      }
+      return;
+    }
 
-  // もし離れたら戦闘解除（逃げられる）
-  if(dist(PLAYER, e) > AGGRO_RADIUS * 1.35){
-    log(`距離が離れた！戦闘解除`);
-    endBattle();
-    return;
-  }
-
-  battle.pAttackTimer -= dt;
-  battle.eAttackTimer -= dt;
-
-  if(battle.pAttackTimer <= 0){
-    battle.pAttackTimer += ATTACK_INTERVAL;
-    const dmg = calcDamage(PLAYER.atkMin, PLAYER.atkMax, e.def);
-    e.hp = Math.max(0, e.hp - dmg);
-    log(`あなたの攻撃！ ${e.name} に ${dmg} ダメージ`);
-    if(e.hp <= 0){
-      e.alive = false;
-      log(`${e.name} を倒した！`);
+    // ===== 戦闘処理 =====
+    const e = battle.target;
+    if(!e || !e.alive){
       endBattle();
       return;
     }
-  }
 
-  if(battle.eAttackTimer <= 0){
-    battle.eAttackTimer += ATTACK_INTERVAL + 0.15;
-    const dmg = calcDamage(e.atkMin, e.atkMax, PLAYER.def);
-    PLAYER.hp = Math.max(0, PLAYER.hp - dmg);
-    log(`${e.name} の攻撃！ あなたに ${dmg} ダメージ`);
-    if(PLAYER.hp <= 0){
-      log(`あなたは倒れた…`);
+    // 離れたら戦闘解除（逃げられる）
+    if(dist(PLAYER, e) > AGGRO_RADIUS * 1.35){
+      log("距離が離れた！戦闘解除");
+      endBattle();
       return;
     }
-  }
-}
+
+    battle.pAttackTimer -= dt;
+    battle.eAttackTimer -= dt;
+
+    if(battle.pAttackTimer <= 0){
+      battle.pAttackTimer += ATTACK_INTERVAL;
+      const dmg = calcDamage(PLAYER.atkMin, PLAYER.atkMax, e.def);
+      e.hp = Math.max(0, e.hp - dmg);
+      log(`あなたの攻撃！ ${e.name} に ${dmg} ダメージ`);
+      if(e.hp <= 0){
+        e.alive = false;
+        log(`${e.name} を倒した！`);
+        endBattle();
+        return;
+      }
+    }
+
+    if(battle.eAttackTimer <= 0){
+      battle.eAttackTimer += ATTACK_INTERVAL + 0.15; // 敵は少し遅め
+      const dmg = calcDamage(e.atkMin, e.atkMax, PLAYER.def);
+      PLAYER.hp = Math.max(0, PLAYER.hp - dmg);
+      log(`${e.name} の攻撃！ あなたに ${dmg} ダメージ`);
+      if(PLAYER.hp <= 0){
+        log("あなたは倒れた…");
+        return;
+      }
+    }
+  } // ← update(dt) の閉じ
 
   function startBattle(enemy){
     battle.inBattle = true;
@@ -281,10 +283,13 @@ if(!battle.inBattle){
     elPStat.textContent = `${PLAYER.hp}/${PLAYER.maxHp}`;
     elPBar.style.width = `${(PLAYER.hp/PLAYER.maxHp)*100}%`;
 
-    const e = battle.target && battle.target.alive ? battle.target : ENEMIES.find(x=>x.alive) || null;
-    if(e){
-      elEStat.textContent = `${e.hp}/${e.maxHp} (${e.name})`;
-      elEBar.style.width = `${(e.hp/e.maxHp)*100}%`;
+    const eUi = (battle.target && battle.target.alive)
+      ? battle.target
+      : (ENEMIES.find(x => x.alive) || null);
+
+    if(eUi){
+      elEStat.textContent = `${eUi.hp}/${eUi.maxHp} (${eUi.name})`;
+      elEBar.style.width = `${(eUi.hp/eUi.maxHp)*100}%`;
     } else {
       elEStat.textContent = `-`;
       elEBar.style.width = `0%`;
@@ -297,8 +302,6 @@ if(!battle.inBattle){
     }
   }
 
-  // 初期ログ
-  log("WASDで移動。敵の赤い円に入ると自動戦闘。");
   requestAnimationFrame(frame);
 })();
 </script>
