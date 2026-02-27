@@ -13,8 +13,8 @@
     <div id="ui">
       <div class="card">
         <div><b>操作</b></div>
-        <div class="hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移動 / 敵に近づくと自動戦闘</div>
-        <div class="hint">戦闘中も移動OK（範囲外に出ると解除）</div>
+        <div class="hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移動</div>
+        <div class="hint">赤＝敵射程 / 緑＝自分射程（Lvで伸びる）</div>
       </div>
 
       <div class="card">
@@ -32,6 +32,15 @@
         </div>
         <div class="bar red"><div id="eBar"></div></div>
         <div class="hint" id="battleState" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- 追加：ログ -->
+      <div class="card">
+        <div class="row">
+          <b>ログ</b>
+          <button id="clearLogBtn" class="btn">クリア</button>
+        </div>
+        <div id="log" class="log"></div>
       </div>
     </div>
   </div>
