@@ -8,6 +8,8 @@ import {
   HEAL_ITEM_PICKUP_RADIUS
 } from "./config.js";
 
+import { cloneEnemyFromTemplate } from "./state.js";
+
 import { clamp, dist } from "./util.js";
 import { getUI, updateUI } from "./ui.js";
 import { createLogger } from "./log.js";
@@ -157,8 +159,12 @@ function update(dt) {
   // 回復アイテム更新
   updateItems(dt);
 
-  // 敵の復活タイマー（復活時にLvUP＆recalcEnemyStatsが呼ばれる想定）
-  for (const e of enemies) respawnTick(e, dt, logger.log);
+  for(const e of enemies){
+  const didRespawn = respawnTick(e, dt, logger.log);
+  if(didRespawn){
+    onEnemyRespawn(e);
+  }
+  }
 
   // 死亡中：移動せず R復活のみ
   if (player.dead) {
@@ -206,6 +212,38 @@ function frame(now) {
   updateUI(ui, game);
 
   requestAnimationFrame(frame);
+}
+
+function extraSpawnsForLevel(lv){
+  // 例：Lv3で+1、Lv6で+2、Lv9で+3...（最大3体まで）
+  return Math.min(3, Math.floor((lv - 1) / 3));
+}
+
+function onEnemyRespawn(e){
+  // 元個体だけ増援を呼ぶ
+  if(!e.spawnsMinions) return;
+
+  const n = extraSpawnsForLevel(e.lv);
+  if(n <= 0) return;
+
+  const radius = 28; // ばらけさせる距離
+  for(let k=0; k<n; k++){
+    const a = Math.random() * Math.PI * 2;
+    const x = e.spawnX + Math.cos(a) * radius;
+    const y = e.spawnY + Math.sin(a) * radius;
+
+    const clone = cloneEnemyFromTemplate(e, x, y);
+
+    // world内に収める
+    clone.x = Math.max(20, Math.min(world.w - 20, clone.x));
+    clone.y = Math.max(20, Math.min(world.h - 20, clone.y));
+    clone.spawnX = clone.x;
+    clone.spawnY = clone.y;
+
+    game.enemies.push(clone);
+  }
+
+  logger.log(`${e.name} の増援！ +${n}体`);
 }
 
 requestAnimationFrame(frame);
