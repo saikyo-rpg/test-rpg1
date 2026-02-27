@@ -87,7 +87,9 @@ export function recalcEnemyStats(enemy){
 // Damage / Reward
 // --------------------
 export function calcDamage(atkMin, atkMax, def){
-  return Math.max(1, randInt(atkMin, atkMax) - def);
+  const atk = Math.floor(randInt(atkMin, atkMax));
+  const defense = Math.floor(def);
+  return Math.max(1, atk - defense);
 }
 
 export function gainExp(player, amount, log){
