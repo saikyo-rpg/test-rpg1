@@ -17,7 +17,7 @@ canvas {
   border-radius: 10px;
 }
 
-#ui { width: 340px; } /* ログ入れるので少し広げる */
+#ui { width: 380px; }
 
 .card {
   background: #181818;
