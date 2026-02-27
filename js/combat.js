@@ -70,17 +70,32 @@ export function healAmountForPlayer(player){
 // Enemy: stats scaling
 // --------------------
 export function recalcEnemyStats(enemy){
-  // Lvで最大HP/攻撃/防御/報酬を伸ばす
-enemy.maxHp = Math.floor(enemy.baseMaxHp + (enemy.lv - 1) * ENEMY_HP_PER_LV);
-enemy.atkMin = Math.floor(enemy.baseAtkMin + (enemy.lv - 1) * ENEMY_ATK_PER_LV);
-enemy.atkMax = Math.floor(enemy.baseAtkMax + (enemy.lv - 1) * ENEMY_ATK_PER_LV);
-enemy.def    = Math.floor(enemy.baseDef + (enemy.lv - 1) * ENEMY_DEF_PER_LV);
+  enemy.maxHp = Math.floor(
+    enemy.baseMaxHp + (enemy.lv - 1) * ENEMY_HP_PER_LV
+  );
 
-enemy.expReward  = Math.floor(enemy.baseExpReward  + (enemy.lv - 1) * ENEMY_EXP_PER_LV);
-enemy.goldReward = Math.floor(enemy.baseGoldReward + (enemy.lv - 1) * ENEMY_GOLD_PER_LV);
+  enemy.atkMin = Math.floor(
+    enemy.baseAtkMin + (enemy.lv - 1) * ENEMY_ATK_PER_LV
+  );
+
+  enemy.atkMax = Math.floor(
+    enemy.baseAtkMax + (enemy.lv - 1) * ENEMY_ATK_PER_LV
+  );
+
+  enemy.def = Math.floor(
+    enemy.baseDef + (enemy.lv - 1) * ENEMY_DEF_PER_LV
+  );
+
+  enemy.expReward = Math.floor(
+    enemy.baseExpReward + (enemy.lv - 1) * ENEMY_EXP_PER_LV
+  );
+
+  enemy.goldReward = Math.floor(
+    enemy.baseGoldReward + (enemy.lv - 1) * ENEMY_GOLD_PER_LV
+  );
 
   // HP整合
-  e.hp = Math.max(0, Math.floor(e.hp - dmg));
+  enemy.hp = Math.min(enemy.hp, enemy.maxHp);
 }
 
 // --------------------
