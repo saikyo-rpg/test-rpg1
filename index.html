@@ -154,68 +154,67 @@
       return;
     }
 
-    // 戦闘中は移動停止（サンプル簡略化）
-    if(!battle.inBattle){
-      // 移動
-      let vx = 0, vy = 0;
-      if(keys.has("w")) vy -= 1;
-      if(keys.has("s")) vy += 1;
-      if(keys.has("a")) vx -= 1;
-      if(keys.has("d")) vx += 1;
-      const len = Math.hypot(vx,vy) || 1;
-      vx /= len; vy /= len;
+    // ===== 移動（戦闘中でもOK）=====
+let vx = 0, vy = 0;
+if(keys.has("w")) vy -= 1;
+if(keys.has("s")) vy += 1;
+if(keys.has("a")) vx -= 1;
+if(keys.has("d")) vx += 1;
 
-      PLAYER.x = clamp(PLAYER.x + vx * MOVE_SPEED * dt, 20, WORLD.w - 20);
-      PLAYER.y = clamp(PLAYER.y + vy * MOVE_SPEED * dt, 20, WORLD.h - 20);
+const len = Math.hypot(vx, vy) || 1;
+vx /= len; vy /= len;
 
-      // 近づいた敵を探して戦闘開始（最初に範囲内に入った1体をターゲット）
-      const target = ENEMIES.find(e => e.alive && dist(PLAYER, e) <= AGGRO_RADIUS);
-      if(target){
-        startBattle(target);
-      }
-    } else {
-      // 戦闘処理
-      const e = battle.target;
-      if(!e || !e.alive){
-        endBattle();
-        return;
-      }
+PLAYER.x = clamp(PLAYER.x + vx * MOVE_SPEED * dt, 20, WORLD.w - 20);
+PLAYER.y = clamp(PLAYER.y + vy * MOVE_SPEED * dt, 20, WORLD.h - 20);
 
-      // もし離れたら戦闘解除（好みでON/OFF）
-      if(dist(PLAYER, e) > AGGRO_RADIUS * 1.35){
-        log(`距離が離れた！戦闘解除`);
-        endBattle();
-        return;
-      }
+// ===== 非戦闘時だけ：近づいたら戦闘開始 =====
+if(!battle.inBattle){
+  const target = ENEMIES.find(e => e.alive && dist(PLAYER, e) <= AGGRO_RADIUS);
+  if(target){
+    startBattle(target);
+  }
+} else {
+  // ===== 戦闘処理（元のまま）=====
+  const e = battle.target;
+  if(!e || !e.alive){
+    endBattle();
+    return;
+  }
 
-      battle.pAttackTimer -= dt;
-      battle.eAttackTimer -= dt;
+  // もし離れたら戦闘解除（逃げられる）
+  if(dist(PLAYER, e) > AGGRO_RADIUS * 1.35){
+    log(`距離が離れた！戦闘解除`);
+    endBattle();
+    return;
+  }
 
-      if(battle.pAttackTimer <= 0){
-        battle.pAttackTimer += ATTACK_INTERVAL;
-        const dmg = calcDamage(PLAYER.atkMin, PLAYER.atkMax, e.def);
-        e.hp = Math.max(0, e.hp - dmg);
-        log(`あなたの攻撃！ ${e.name} に ${dmg} ダメージ`);
-        if(e.hp <= 0){
-          e.alive = false;
-          log(`${e.name} を倒した！`);
-          endBattle();
-          return;
-        }
-      }
+  battle.pAttackTimer -= dt;
+  battle.eAttackTimer -= dt;
 
-      if(battle.eAttackTimer <= 0){
-        battle.eAttackTimer += ATTACK_INTERVAL + 0.15; // 敵は少し遅め
-        const dmg = calcDamage(e.atkMin, e.atkMax, PLAYER.def);
-        PLAYER.hp = Math.max(0, PLAYER.hp - dmg);
-        log(`${e.name} の攻撃！ あなたに ${dmg} ダメージ`);
-        if(PLAYER.hp <= 0){
-          log(`あなたは倒れた…`);
-          return;
-        }
-      }
+  if(battle.pAttackTimer <= 0){
+    battle.pAttackTimer += ATTACK_INTERVAL;
+    const dmg = calcDamage(PLAYER.atkMin, PLAYER.atkMax, e.def);
+    e.hp = Math.max(0, e.hp - dmg);
+    log(`あなたの攻撃！ ${e.name} に ${dmg} ダメージ`);
+    if(e.hp <= 0){
+      e.alive = false;
+      log(`${e.name} を倒した！`);
+      endBattle();
+      return;
     }
   }
+
+  if(battle.eAttackTimer <= 0){
+    battle.eAttackTimer += ATTACK_INTERVAL + 0.15;
+    const dmg = calcDamage(e.atkMin, e.atkMax, PLAYER.def);
+    PLAYER.hp = Math.max(0, PLAYER.hp - dmg);
+    log(`${e.name} の攻撃！ あなたに ${dmg} ダメージ`);
+    if(PLAYER.hp <= 0){
+      log(`あなたは倒れた…`);
+      return;
+    }
+  }
+}
 
   function startBattle(enemy){
     battle.inBattle = true;
