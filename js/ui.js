@@ -1,5 +1,10 @@
 // /js/ui.js
-import { playerAttackRadius, playerAttackInterval } from "./combat.js";
+import { ENEMY_ATTACK_RADIUS } from "./config.js";
+import {
+  playerAttackRadius,
+  playerAttackInterval,
+  enemyAttackInterval
+} from "./combat.js";
 
 export function getUI(){
   const ui = {
@@ -28,7 +33,6 @@ function safePercent(n){
 }
 
 function i(n){
-  // 整数表示（小数が来ても切り捨て）
   if(!Number.isFinite(n)) return 0;
   return Math.floor(n);
 }
@@ -36,42 +40,55 @@ function i(n){
 export function updateUI(ui, game){
   const { player, enemies, battle, expToNextLevel } = game;
 
-  // ===== Player UI =====
+  // ===== Player =====
   const need = expToNextLevel(player.lv);
 
-  const atkMin = i(player.atkMin);
-  const atkMax = i(player.atkMax);
+  const pAtkMin = i(player.atkMin);
+  const pAtkMax = i(player.atkMax);
+  const pDef = i(player.def);
+  const pRange = i(playerAttackRadius(player));
+  const pInterval = playerAttackInterval(player);
+  const pSpeedText = `${pInterval.toFixed(2)}s`;
+  const pRateText = pInterval > 0 ? `${(1 / pInterval).toFixed(2)}/s` : "∞";
 
-  const range = i(playerAttackRadius(player));
-  const interval = playerAttackInterval(player); // 秒（小さいほど速い）
-  const speedText = `${interval.toFixed(2)}s`;    // 間隔を表示
-  const dpsHint = interval > 0 ? (1 / interval).toFixed(2) : "∞"; // 参考: 回/秒
-
-  const hpText = player.dead
-    ? "DEAD"
-    : `HP ${i(player.hp)}/${i(player.maxHp)}`;
+  const pHpText = player.dead ? "DEAD" : `HP ${i(player.hp)}/${i(player.maxHp)}`;
 
   ui.pStat.textContent =
-    `Lv${i(player.lv)}  ${hpText}  EXP ${i(player.exp)}/${i(need)}  💰${i(player.gold)}  ` +
-    `攻撃 ${atkMin}-${atkMax}  速度 ${speedText}(${dpsHint}/s)  射程 ${range}`;
+    `Lv${i(player.lv)}  ${pHpText}  EXP ${i(player.exp)}/${i(need)}  💰${i(player.gold)}  ` +
+    `攻撃 ${pAtkMin}-${pAtkMax}  防御 ${pDef}  速度 ${pSpeedText}(${pRateText})  射程 ${pRange}`;
 
   ui.pBar.style.width = `${safePercent((player.hp / player.maxHp) * 100)}%`;
 
-  // ===== Enemy UI =====
+  // ===== Enemy =====
   const eUi = (battle.target && battle.target.alive)
     ? battle.target
     : (enemies.find(x => x.alive) || null);
 
   if(eUi){
+    const eAtkMin = i(eUi.atkMin);
+    const eAtkMax = i(eUi.atkMax);
+    const eDef = i(eUi.def);
+    const eRange = i(ENEMY_ATTACK_RADIUS);
+    const eInterval = enemyAttackInterval(eUi);
+    const eSpeedText = `${eInterval.toFixed(2)}s`;
+    const eRateText = eInterval > 0 ? `${(1 / eInterval).toFixed(2)}/s` : "∞";
+
+    // 報酬（敵だけの情報）
+    const expR = i(eUi.expReward ?? 0);
+    const goldR = i(eUi.goldReward ?? 0);
+
     ui.eStat.textContent =
-      `Lv${i(eUi.lv)}  ${i(eUi.hp)}/${i(eUi.maxHp)} (${eUi.name})`;
+      `${eUi.name} Lv${i(eUi.lv)}  HP ${i(eUi.hp)}/${i(eUi.maxHp)}  ` +
+      `攻撃 ${eAtkMin}-${eAtkMax}  防御 ${eDef}  速度 ${eSpeedText}(${eRateText})  射程 ${eRange}  ` +
+      `報酬 EXP+${expR} 💰+${goldR}`;
+
     ui.eBar.style.width = `${safePercent((eUi.hp / eUi.maxHp) * 100)}%`;
-  } else {
+  }else{
     ui.eStat.textContent = "-";
     ui.eBar.style.width = "0%";
   }
 
-  // ===== State Text =====
+  // ===== 状態表示 =====
   if(player.dead){
     ui.battleState.textContent = "死亡中：Rで復活（所持金10%）";
   } else if(battle.inBattle && battle.target){
