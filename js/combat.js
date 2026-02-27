@@ -226,7 +226,7 @@ export function tickCombat(game, dt, log, spawn){
       const dmg = calcDamage(player.atkMin, player.atkMax, e.def);
       e.hp = Math.max(0, e.hp - dmg);
       log?.(`あなたの攻撃 → ${e.name}Lv${e.lv} に ${dmg}（残り ${e.hp}）`);
-      spawn?.(e.x, e.y - 22, `-${dmg}`, "dmg");
+      spawn?.(e.x, e.y - 44, `-${dmg}`, "dmg");
 
       if(e.hp <= 0){
         killEnemy(e, player, battle, log, spawn);
@@ -246,7 +246,7 @@ export function tickCombat(game, dt, log, spawn){
       const dmg = calcDamage(e.atkMin, e.atkMax, player.def);
       player.hp = Math.max(0, player.hp - dmg);
       log?.(`${e.name}Lv${e.lv} の攻撃 → あなたに ${dmg}（残りHP ${player.hp}）`);
-      spawn?.(player.x, player.y - 22, `-${dmg}`, "dmg");
+      spawn?.(player.x, player.y - 44, `-${dmg}`, "dmg");
 
       if(player.hp <= 0){
         handlePlayerDeath(player, battle, log, spawn);
