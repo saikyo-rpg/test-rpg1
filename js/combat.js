@@ -144,25 +144,26 @@ export function killEnemy(enemy, player, battle, log, spawn){
 }
 
 export function respawnTick(enemy, dt, log){
-  if(enemy.alive) return;
+  if(enemy.alive) return false;
 
   enemy.respawnTimer -= dt;
   if(enemy.respawnTimer <= 0){
-    // 復活のたびにLv上昇
     enemy.lv += ENEMY_LV_UP_ON_RESPAWN;
 
     enemy.alive = true;
     enemy.x = enemy.spawnX;
     enemy.y = enemy.spawnY;
 
-    // maxHP等をLvで再計算して全回復
     enemy.hp = 999999;
     recalcEnemyStats(enemy);
     enemy.hp = enemy.maxHp;
 
     enemy.respawnTimer = 0;
     log?.(`${enemy.name} が復活！ Lv${enemy.lv}`);
+
+    return true; // ★追加
   }
+  return false;
 }
 
 // --------------------
