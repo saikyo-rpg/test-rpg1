@@ -109,10 +109,6 @@
   const elBattleState = document.getElementById("battleState");
 
   function log(msg){
-    const div = document.createElement("div");
-    div.textContent = msg;
-    elLog.appendChild(div);
-    elLog.scrollTop = elLog.scrollHeight;
   }
 
   function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
