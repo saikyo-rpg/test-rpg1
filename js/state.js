@@ -1,3 +1,5 @@
+import { ENEMY_LV_START } from "./config.js";
+
 export function createPlayer(){
   return {
     x:120, y:240, r:12,
@@ -6,14 +8,10 @@ export function createPlayer(){
 
     dead:false,
 
-    // レベル/経験値
     lv:1,
     exp:0,
+    gold:0,
 
-    // お金
-    gold: 0,
-
-    // 攻撃（レベルで上がる）
     baseAtkMin:8,
     baseAtkMax:14,
     atkMin:8,
@@ -24,7 +22,18 @@ export function createPlayer(){
 export function makeEnemy(x,y,name,hp,atkMin,atkMax,def, expReward, goldReward){
   return {
     x,y,r:12,name,
-    maxHp:hp, hp,
+
+    // ベース値（Lvで伸ばす）
+    baseMaxHp: hp,
+    baseAtkMin: atkMin,
+    baseAtkMax: atkMax,
+    baseDef: def,
+    baseExpReward: expReward,
+    baseGoldReward: goldReward,
+
+    // 現在値（recalcEnemyStatsで更新）
+    lv: ENEMY_LV_START,
+    maxHp: hp, hp,
     atkMin, atkMax,
     def,
     expReward,
@@ -45,4 +54,9 @@ export function createEnemies(){
 
 export function createBattle(){
   return { inBattle:false, target:null, pAttackTimer:0, eAttackTimer:0 };
+}
+
+// 回復アイテムの配列（mainで湧かせる）
+export function createItems(){
+  return []; // {id,x,y,r,heal,ttl}
 }
