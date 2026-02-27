@@ -17,6 +17,8 @@ export function updateUI(ui, game){
   const need = expToNextLevel(player.lv);
   const hpText = player.dead ? `DEAD` : `HP ${player.hp}/${player.maxHp}`;
   ui.pStat.textContent = `Lv${player.lv}  ${hpText}  EXP ${player.exp}/${need}  💰${player.gold}`;
+  // eUi がある時
+  ui.eStat.textContent = `Lv${eUi.lv}  ${eUi.hp}/${eUi.maxHp} (${eUi.name})`;
   ui.pBar.style.width = `${(player.hp/player.maxHp)*100}%`;
 
   const eUi = (battle.target && battle.target.alive)
