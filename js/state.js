@@ -77,7 +77,7 @@ export function makeEnemy(x,y,name,hp,atkMin,atkMax,def, expReward, goldReward){
 
     alive:true,
     spawnX:x, spawnY:y,
-    respawnTimer:0
+    respawnTimer:0,
 
     // 追加：ランダム移動用
     vx: 0,
