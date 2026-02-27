@@ -2,11 +2,28 @@ import {
   PLAYER_BASE_ATTACK_RADIUS,
   PLAYER_ATTACK_RADIUS_PER_LV,
   ENEMY_ATTACK_RADIUS,
-  ATTACK_INTERVAL,
-  RESPAWN_SECONDS
+  RESPAWN_SECONDS,
+
+  PLAYER_ATTACK_INTERVAL_BASE,
+  PLAYER_ATTACK_INTERVAL_MIN,
+  ENEMY_ATTACK_INTERVAL_BASE,
+  ENEMY_ATTACK_INTERVAL_MIN,
+  ATTACK_INTERVAL_PER_LV,
+
+  ENEMY_LV_UP_ON_RESPAWN,
+  ENEMY_HP_PER_LV,
+  ENEMY_ATK_PER_LV,
+  ENEMY_DEF_PER_LV,
+  ENEMY_EXP_PER_LV,
+  ENEMY_GOLD_PER_LV,
+
+  HEAL_AMOUNT_BASE,
+  HEAL_AMOUNT_PER_LV
 } from "./config.js";
+
 import { dist, randInt } from "./util.js";
 
+// ===== プレイヤー =====
 export function expToNextLevel(lv){
   return Math.floor(30 * Math.pow(1.25, lv-1));
 }
@@ -20,6 +37,37 @@ export function playerAttackRadius(player){
   return PLAYER_BASE_ATTACK_RADIUS + (player.lv-1) * PLAYER_ATTACK_RADIUS_PER_LV;
 }
 
+export function playerAttackInterval(player){
+  // Lvが上がるほど短く（速く）。下限あり
+  const v = PLAYER_ATTACK_INTERVAL_BASE - (player.lv-1) * ATTACK_INTERVAL_PER_LV;
+  return Math.max(PLAYER_ATTACK_INTERVAL_MIN, v);
+}
+
+export function healAmountForPlayer(player){
+  return HEAL_AMOUNT_BASE + (player.lv-1) * HEAL_AMOUNT_PER_LV;
+}
+
+// ===== 敵 =====
+export function recalcEnemyStats(enemy){
+  // Lvで最大HP/攻撃/防御/報酬を伸ばす
+  enemy.maxHp = enemy.baseMaxHp + (enemy.lv-1) * ENEMY_HP_PER_LV;
+  enemy.atkMin = enemy.baseAtkMin + (enemy.lv-1) * ENEMY_ATK_PER_LV;
+  enemy.atkMax = enemy.baseAtkMax + (enemy.lv-1) * ENEMY_ATK_PER_LV;
+  enemy.def = enemy.baseDef + (enemy.lv-1) * ENEMY_DEF_PER_LV;
+
+  enemy.expReward = enemy.baseExpReward + (enemy.lv-1) * ENEMY_EXP_PER_LV;
+  enemy.goldReward = enemy.baseGoldReward + (enemy.lv-1) * ENEMY_GOLD_PER_LV;
+
+  // HPがmaxを超えないように
+  enemy.hp = Math.min(enemy.hp, enemy.maxHp);
+}
+
+export function enemyAttackInterval(enemy){
+  const v = ENEMY_ATTACK_INTERVAL_BASE - (enemy.lv-1) * ATTACK_INTERVAL_PER_LV;
+  return Math.max(ENEMY_ATTACK_INTERVAL_MIN, v);
+}
+
+// ===== 共通 =====
 export function calcDamage(atkMin, atkMax, def){
   return Math.max(1, randInt(atkMin, atkMax) - def);
 }
@@ -32,7 +80,7 @@ export function gainExp(player, amount, log){
     player.exp -= expToNextLevel(player.lv);
     player.lv += 1;
     recalcPlayerStats(player);
-    log?.(`レベルアップ！ Lv${player.lv}（攻撃 ${player.atkMin}-${player.atkMax} / 射程 ${Math.floor(playerAttackRadius(player))}）`);
+    log?.(`レベルアップ！ Lv${player.lv}（攻撃 ${player.atkMin}-${player.atkMax} / 射程 ${Math.floor(playerAttackRadius(player))} / 速度 ${playerAttackInterval(player).toFixed(2)}s）`);
   }
 }
 
@@ -46,7 +94,7 @@ export function startBattle(battle, enemy, log){
   battle.target = enemy;
   battle.pAttackTimer = 0.2;
   battle.eAttackTimer = 0.45;
-  log?.(`⚔️ ${enemy.name} と戦闘開始`);
+  log?.(`⚔️ ${enemy.name} Lv${enemy.lv} と戦闘開始`);
 }
 
 export function endBattle(battle, log, reason){
@@ -69,18 +117,26 @@ export function killEnemy(enemy, player, battle, log){
 
 export function respawnTick(enemy, dt, log){
   if(enemy.alive) return;
+
   enemy.respawnTimer -= dt;
   if(enemy.respawnTimer <= 0){
+    // 復活ごとにLvアップ
+    enemy.lv += ENEMY_LV_UP_ON_RESPAWN;
+
+    // ステータス再計算
     enemy.alive = true;
-    enemy.hp = enemy.maxHp;
     enemy.x = enemy.spawnX;
     enemy.y = enemy.spawnY;
+    enemy.hp = 999999; // 一旦大きい値 → recalcでmaxに揃える
+    recalcEnemyStats(enemy);
+    enemy.hp = enemy.maxHp;
+
     enemy.respawnTimer = 0;
-    log?.(`${enemy.name} が復活した！`);
+    log?.(`${enemy.name} が復活！ Lv${enemy.lv}`);
   }
 }
 
-// ===== 死亡/復活 =====
+// ===== 死亡/復活（前の仕様のまま）=====
 export function handlePlayerDeath(player, battle, log){
   if(player.dead) return;
   player.dead = true;
@@ -92,13 +148,9 @@ export function handlePlayerDeath(player, battle, log){
 export function revivePlayer(player, battle, log){
   if(!player.dead) return false;
 
-  const cost = Math.ceil(player.gold * 0.10); // 10%（切り上げ）
-  if(cost <= 0){
-    log?.(`所持金がないので復活できない（所持金 ${player.gold}）`);
-    return false;
-  }
-  if(player.gold < cost){
-    log?.(`お金が足りない（復活費 ${cost} / 所持金 ${player.gold}）`);
+  const cost = Math.ceil(player.gold * 0.10);
+  if(cost <= 0 || player.gold < cost){
+    log?.(`復活できない（復活費 ${cost} / 所持金 ${player.gold}）`);
     return false;
   }
 
@@ -114,15 +166,14 @@ export function revivePlayer(player, battle, log){
 export function tickCombat(game, dt, log){
   const { player, battle } = game;
   const e = battle.target;
+
   if(!e || !e.alive){
     endBattle(battle);
     return;
   }
-
-  // 死んでたら何もしない
   if(player.dead) return;
 
-  // 戦闘解除条件（敵の赤円から遠く離れたら解除）
+  // 赤円から離れたら解除（敵を置いて逃げる）
   if(dist(player, e) > ENEMY_ATTACK_RADIUS * 1.35){
     endBattle(battle, log, "距離が離れた。戦闘解除");
     return;
@@ -131,29 +182,31 @@ export function tickCombat(game, dt, log){
   battle.pAttackTimer -= dt;
   battle.eAttackTimer -= dt;
 
-  // 自分攻撃：緑円内なら当たる（＝敵の赤円外でも一方的に殴れる）
+  // 自分攻撃（緑円内なら当たる：一方的可）
   if(battle.pAttackTimer <= 0){
-    battle.pAttackTimer += ATTACK_INTERVAL;
+    battle.pAttackTimer += playerAttackInterval(player);
 
     if(dist(player, e) <= playerAttackRadius(player)){
       const dmg = calcDamage(player.atkMin, player.atkMax, e.def);
       e.hp = Math.max(0, e.hp - dmg);
-      log?.(`あなたの攻撃 → ${e.name} に ${dmg}（残り ${e.hp}）`);
+      log?.(`あなたの攻撃 → ${e.name}Lv${e.lv} に ${dmg}（残り ${e.hp}）`);
       if(e.hp <= 0){
         killEnemy(e, player, battle, log);
         return;
       }
+    } else {
+      log?.("攻撃！…でも射程外");
     }
   }
 
-  // 敵攻撃：赤円内なら当たる（＝赤円外なら反撃できない）
+  // 敵攻撃（赤円内だけ反撃）
   if(battle.eAttackTimer <= 0){
-    battle.eAttackTimer += ATTACK_INTERVAL + 0.15;
+    battle.eAttackTimer += enemyAttackInterval(e);
 
     if(dist(player, e) <= ENEMY_ATTACK_RADIUS){
       const dmg = calcDamage(e.atkMin, e.atkMax, player.def);
       player.hp = Math.max(0, player.hp - dmg);
-      log?.(`${e.name} の攻撃 → あなたに ${dmg}（残りHP ${player.hp}）`);
+      log?.(`${e.name}Lv${e.lv} の攻撃 → あなたに ${dmg}（残りHP ${player.hp}）`);
       if(player.hp <= 0){
         handlePlayerDeath(player, battle, log);
         return;
