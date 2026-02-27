@@ -23,3 +23,5 @@ export const ENEMY_ATK_PER_LV = 1;
 export const ENEMY_DEF_PER_LV = 0.2;
 export const ENEMY_EXP_PER_LV = 2;
 export const ENEMY_GOLD_PER_LV = 1;
+
+export const LOG_MAX_LINES = 200;
