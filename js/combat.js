@@ -38,8 +38,8 @@ export function expToNextLevel(lv){
 }
 
 export function recalcPlayerStats(player){
-  player.atkMin = player.baseAtkMin + Math.floor((player.lv - 1) * 1.2);
-  player.atkMax = player.baseAtkMax + Math.floor((player.lv - 1) * 1.6);
+  player.atkMin = Math.floor(player.baseAtkMin + (player.lv - 1) * 1.2);
+  player.atkMax = Math.floor(player.baseAtkMax + (player.lv - 1) * 1.6);
 }
 
 // --------------------
@@ -80,7 +80,7 @@ enemy.expReward  = Math.floor(enemy.baseExpReward  + (enemy.lv - 1) * ENEMY_EXP_
 enemy.goldReward = Math.floor(enemy.baseGoldReward + (enemy.lv - 1) * ENEMY_GOLD_PER_LV);
 
   // HP整合
-  enemy.hp = Math.min(enemy.hp, enemy.maxHp);
+  e.hp = Math.max(0, Math.floor(e.hp - dmg));
 }
 
 // --------------------
@@ -247,7 +247,7 @@ export function tickCombat(game, dt, log, spawn){
 
     if(dist(player, e) <= ENEMY_ATTACK_RADIUS){
       const dmg = calcDamage(e.atkMin, e.atkMax, player.def);
-      player.hp = Math.max(0, player.hp - dmg);
+      player.hp = Math.max(0, Math.floor(player.hp - dmg));
       log?.(`${e.name}Lv${e.lv} の攻撃 → あなたに ${dmg}（残りHP ${player.hp}）`);
       spawn?.(player.x, player.y - 44, `-${dmg}`, "dmg");
 
