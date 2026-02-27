@@ -85,6 +85,35 @@ function spawnHealItem() {
   logger.log(`回復アイテム出現（+${Math.floor(heal)}）`);
 }
 
+function updateEnemyWander(dt){
+  const pad = 20;
+
+  for(const e of game.enemies){
+    if(!e.alive) continue;
+
+    // ランダム方向の更新（0.6〜1.4秒ごと）
+    e.wanderTimer -= dt;
+    if(e.wanderTimer <= 0){
+      e.wanderTimer = 0.6 + Math.random() * 0.8;
+      const a = Math.random() * Math.PI * 2;
+      e.vx = Math.cos(a);
+      e.vy = Math.sin(a);
+    }
+
+    // Lvが高いほどちょい速い（任意）
+    const speed = 25 + (e.lv - 1) * 2;
+
+    e.x += e.vx * speed * dt;
+    e.y += e.vy * speed * dt;
+
+    // 画面端で跳ね返り
+    if(e.x < pad){ e.x = pad; e.vx *= -1; }
+    if(e.y < pad){ e.y = pad; e.vy *= -1; }
+    if(e.x > world.w - pad){ e.x = world.w - pad; e.vx *= -1; }
+    if(e.y > world.h - pad){ e.y = world.h - pad; e.vy *= -1; }
+  }
+}
+
 function updateItems(dt) {
   // 湧き制御：一定間隔でチェック、足りなければ追加
   healSpawnTimer -= dt;
@@ -121,7 +150,7 @@ function updateItems(dt) {
 
 function update(dt) {
   const { player, enemies, battle } = game;
-
+  updateEnemyWander(dt);
   // ポップアップ更新
   updatePopups(game.popups, dt);
 
