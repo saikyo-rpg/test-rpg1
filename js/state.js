@@ -1,5 +1,41 @@
 import { ENEMY_LV_START } from "./config.js";
 
+export function cloneEnemyFromTemplate(tpl, x, y){
+  // tplの「ベース値」を引き継ぐ（Lvも引き継ぐ）
+  return {
+    x, y, r: tpl.r,
+    name: tpl.name,
+
+    baseMaxHp: tpl.baseMaxHp,
+    baseAtkMin: tpl.baseAtkMin,
+    baseAtkMax: tpl.baseAtkMax,
+    baseDef: tpl.baseDef,
+    baseExpReward: tpl.baseExpReward,
+    baseGoldReward: tpl.baseGoldReward,
+
+    lv: tpl.lv,
+    maxHp: tpl.maxHp,
+    hp: tpl.hp,
+    atkMin: tpl.atkMin,
+    atkMax: tpl.atkMax,
+    def: tpl.def,
+    expReward: tpl.expReward,
+    goldReward: tpl.goldReward,
+
+    alive: true,
+    spawnX: x,
+    spawnY: y,
+    respawnTimer: 0,
+
+    vx: 0,
+    vy: 0,
+    wanderTimer: 0,
+
+    // ★クローンは増援を呼ばない
+    spawnsMinions: false,
+  };
+}
+
 export function createPlayer(){
   return {
     x:120, y:240, r:12,
