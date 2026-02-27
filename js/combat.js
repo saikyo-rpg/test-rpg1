@@ -36,29 +36,9 @@ export function gainExp(player, amount, log){
   }
 }
 
-export function killEnemy(enemy, player, battle, log){
-  enemy.alive = false;
-  enemy.hp = 0;
-  enemy.respawnTimer = RESPAWN_SECONDS;
-
-  log?.(`${enemy.name} を倒した！（${RESPAWN_SECONDS}秒後に復活）`);
-  gainExp(player, enemy.expReward, log);
-
-  battle.inBattle = false;
-  battle.target = null;
-}
-
-export function respawnTick(enemy, dt, log){
-  if(enemy.alive) return;
-  enemy.respawnTimer -= dt;
-  if(enemy.respawnTimer <= 0){
-    enemy.alive = true;
-    enemy.hp = enemy.maxHp;
-    enemy.x = enemy.spawnX;
-    enemy.y = enemy.spawnY;
-    enemy.respawnTimer = 0;
-    log?.(`${enemy.name} が復活した！`);
-  }
+export function gainGold(player, amount, log){
+  player.gold += amount;
+  log?.(`お金 +${amount}（所持金 ${player.gold}）`);
 }
 
 export function startBattle(battle, enemy, log){
@@ -75,6 +55,62 @@ export function endBattle(battle, log, reason){
   if(reason) log?.(reason);
 }
 
+export function killEnemy(enemy, player, battle, log){
+  enemy.alive = false;
+  enemy.hp = 0;
+  enemy.respawnTimer = RESPAWN_SECONDS;
+
+  log?.(`${enemy.name} を倒した！（${RESPAWN_SECONDS}秒後に復活）`);
+  gainExp(player, enemy.expReward, log);
+  gainGold(player, enemy.goldReward ?? 0, log);
+
+  endBattle(battle);
+}
+
+export function respawnTick(enemy, dt, log){
+  if(enemy.alive) return;
+  enemy.respawnTimer -= dt;
+  if(enemy.respawnTimer <= 0){
+    enemy.alive = true;
+    enemy.hp = enemy.maxHp;
+    enemy.x = enemy.spawnX;
+    enemy.y = enemy.spawnY;
+    enemy.respawnTimer = 0;
+    log?.(`${enemy.name} が復活した！`);
+  }
+}
+
+// ===== 死亡/復活 =====
+export function handlePlayerDeath(player, battle, log){
+  if(player.dead) return;
+  player.dead = true;
+  player.hp = 0;
+  endBattle(battle);
+  log?.(`あなたは倒れた… Rで復活（所持金の10%）`);
+}
+
+export function revivePlayer(player, battle, log){
+  if(!player.dead) return false;
+
+  const cost = Math.ceil(player.gold * 0.10); // 10%（切り上げ）
+  if(cost <= 0){
+    log?.(`所持金がないので復活できない（所持金 ${player.gold}）`);
+    return false;
+  }
+  if(player.gold < cost){
+    log?.(`お金が足りない（復活費 ${cost} / 所持金 ${player.gold}）`);
+    return false;
+  }
+
+  player.gold -= cost;
+  player.hp = player.maxHp;
+  player.dead = false;
+  endBattle(battle);
+  log?.(`復活！ 復活費 ${cost}（残り ${player.gold}）`);
+  return true;
+}
+
+// ===== 戦闘処理 =====
 export function tickCombat(game, dt, log){
   const { player, battle } = game;
   const e = battle.target;
@@ -83,7 +119,10 @@ export function tickCombat(game, dt, log){
     return;
   }
 
-  // 離脱
+  // 死んでたら何もしない
+  if(player.dead) return;
+
+  // 戦闘解除条件（敵の赤円から遠く離れたら解除）
   if(dist(player, e) > ENEMY_ATTACK_RADIUS * 1.35){
     endBattle(battle, log, "距離が離れた。戦闘解除");
     return;
@@ -92,7 +131,7 @@ export function tickCombat(game, dt, log){
   battle.pAttackTimer -= dt;
   battle.eAttackTimer -= dt;
 
-  // 自分攻撃（緑円内）
+  // 自分攻撃：緑円内なら当たる（＝敵の赤円外でも一方的に殴れる）
   if(battle.pAttackTimer <= 0){
     battle.pAttackTimer += ATTACK_INTERVAL;
 
@@ -104,12 +143,10 @@ export function tickCombat(game, dt, log){
         killEnemy(e, player, battle, log);
         return;
       }
-    } else {
-      log?.("攻撃！…でも射程外");
     }
   }
 
-  // 敵攻撃（赤円内）
+  // 敵攻撃：赤円内なら当たる（＝赤円外なら反撃できない）
   if(battle.eAttackTimer <= 0){
     battle.eAttackTimer += ATTACK_INTERVAL + 0.15;
 
@@ -117,6 +154,10 @@ export function tickCombat(game, dt, log){
       const dmg = calcDamage(e.atkMin, e.atkMax, player.def);
       player.hp = Math.max(0, player.hp - dmg);
       log?.(`${e.name} の攻撃 → あなたに ${dmg}（残りHP ${player.hp}）`);
+      if(player.hp <= 0){
+        handlePlayerDeath(player, battle, log);
+        return;
+      }
     }
   }
 }
